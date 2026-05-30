@@ -9,6 +9,9 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+type TypeSet func(ctx context.Context, key string, value interface{}, exp time.Duration) error
+type TypeSAdd func(ctx context.Context, key string, members ...string) error
+
 type Options struct {
 	Addr     string
 	Password string
@@ -100,6 +103,10 @@ func (c *RedisClient) SRem(ctx context.Context, key string, members ...string) e
 	}
 
 	return c.rdb.SRem(ctx, key, args...).Err()
+}
+
+func (c *RedisClient) Pipelined() {
+
 }
 
 func (c *RedisClient) Shutdown() error {

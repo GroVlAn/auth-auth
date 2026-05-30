@@ -21,10 +21,10 @@ func NewBlacklistRepository(rc redisClient, rkBuilder rkBuilder) *BlacklistRepos
 	}
 }
 
-func (br *BlacklistRepository) AddToBlackList(ctx context.Context, jti, token string, exp time.Duration) error {
+func (br *BlacklistRepository) AddToBlackList(ctx context.Context, jti string, exp time.Duration) error {
 	key := br.rkBuilder.BlacklistKey(jti)
 
-	if err := br.rc.Set(ctx, key, token, exp); err != nil {
+	if err := br.rc.Set(ctx, key, "1", exp); err != nil {
 		return e.NewErrInternal(fmt.Errorf("adding token to black list: %w", err))
 
 	}
