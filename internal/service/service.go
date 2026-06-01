@@ -62,7 +62,11 @@ func New(repos Repos, tokenizer tokenizer, deps Deps) *Service {
 	}
 }
 
-func (s *Service) Authenticate(ctx context.Context, authUser domain.AuthUser, payload domain.UserPayload) (domain.RefreshToken, domain.AccessToken, error) {
+func (s *Service) Authenticate(
+	ctx context.Context,
+	authUser domain.AuthUser,
+	payload domain.UserPayload,
+) (domain.RefreshToken, domain.AccessToken, error) {
 	// TODO get User
 	user := domain.User{
 		ID:           "ff2i3f2jf2",
@@ -274,10 +278,17 @@ func (s *Service) LogoutAllSession(ctx context.Context, rfToken string) error {
 
 func (s *Service) GetUserSessions(
 	ctx context.Context,
-	userID string,
-	currentSessionID string,
+	rfToken string,
 ) ([]domain.UserSession, error) {
-	sessionIDs, err := s.sessionRepo.UserSessions(ctx, userID)
+	parsedRefToken, err := s.tokenizer.ParseRefreshToken(rfToken)
+	if err != nil {
+		return nil, e.NewErrUnauthorized(
+			fmt.Errorf("parsed refresh token: %w", err),
+			"invalid token",
+		)
+	}
+
+	sessionIDs, err := s.sessionRepo.UserSessions(ctx, parsedRefToken.SUB)
 	if err != nil {
 		return nil, e.NewErrInternal(
 			fmt.Errorf("getting user sessions: %w", err),
@@ -304,7 +315,7 @@ func (s *Service) GetUserSessions(
 			IP:           session.IP,
 			CreatedAt:    session.CreatedAt,
 			LastActiveAt: session.LastActiveAt,
-			Current:      session.ID == currentSessionID,
+			Current:      session.ID == parsedRefToken.SID,
 		}
 
 		result = append(result, userSession)
