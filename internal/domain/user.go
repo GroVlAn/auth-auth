@@ -3,6 +3,7 @@ package domain
 import "time"
 
 type AuthUser struct {
+	ID       string `json:"-"`
 	Username string `json:"username"`
 	Email    string `json:"email"`
 	Password string `json:"password"`

@@ -7,6 +7,7 @@ import (
 	"sort"
 	"time"
 
+	api "github.com/GroVlAn/auth-api/user"
 	"github.com/GroVlAn/auth-auth/internal/domain"
 	"github.com/GroVlAn/auth-auth/internal/domain/e"
 	"github.com/google/uuid"
@@ -49,16 +50,18 @@ type Deps struct {
 }
 
 type Service struct {
-	tokenizer tokenizer
+	tokenizer  tokenizer
+	userClient api.UserServiceClient
 	Deps
 	Repos
 }
 
-func New(repos Repos, tokenizer tokenizer, deps Deps) *Service {
+func New(repos Repos, tokenizer tokenizer, userClient api.UserServiceClient, deps Deps) *Service {
 	return &Service{
-		tokenizer: tokenizer,
-		Deps:      deps,
-		Repos:     repos,
+		tokenizer:  tokenizer,
+		Deps:       deps,
+		userClient: userClient,
+		Repos:      repos,
 	}
 }
 
@@ -67,14 +70,14 @@ func (s *Service) Authenticate(
 	authUser domain.AuthUser,
 	payload domain.UserPayload,
 ) (domain.RefreshToken, domain.AccessToken, error) {
-	// TODO get User
-	user := domain.User{
-		ID:           "ff2i3f2jf2",
-		Username:     "username",
-		Email:        "example@example.com",
-		PasswordHash: "f3ir2j32ijr",
-		Fullname:     "LastName FirstName",
-		IsActive:     true,
+	user, err := s.getUser(ctx, authUser)
+	if err != nil {
+		return domain.RefreshToken{},
+			domain.AccessToken{},
+			e.NewErrUnauthorized(
+				fmt.Errorf("getting user: %w", err),
+				"username or password no valid",
+			)
 	}
 
 	if err := s.verifyPassword(user.PasswordHash, authUser.Password); err != nil {
@@ -177,14 +180,16 @@ func (s *Service) RefreshSession(
 
 	session.RefreshJTI = uuid.NewString()
 
-	// TODO get User
-	user := domain.User{
-		ID:           "ff2i3f2jf2",
-		Username:     "username",
-		Email:        "example@example.com",
-		PasswordHash: "f3ir2j32ijr",
-		Fullname:     "LastName FirstName",
-		IsActive:     true,
+	user, err := s.getUser(ctx, domain.AuthUser{
+		ID: session.UserID,
+	})
+	if err != nil {
+		unauthorizedErr(
+			e.ErrInvalidToken,
+			"user not found",
+			"invalid refresh token",
+		)
+		return
 	}
 
 	newRefToken, newAccToken, err = s.createTokens(user, session)
@@ -328,6 +333,28 @@ func (s *Service) GetUserSessions(
 	})
 
 	return result, nil
+}
+
+func (s *Service) getUser(ctx context.Context, authUser domain.AuthUser) (domain.User, error) {
+	u, err := s.userClient.GetUser(ctx, &api.UserQuery{
+		ID:       authUser.ID,
+		Username: authUser.Username,
+		Email:    authUser.Email,
+	})
+	if err != nil {
+		return domain.User{}, err
+	}
+
+	return domain.User{
+		ID:           u.ID,
+		Username:     u.Username,
+		Email:        u.Email,
+		PasswordHash: u.PasswordHash,
+		Fullname:     u.Fullname,
+		IsActive:     u.IsActive,
+		IsSuperuser:  u.IsSuperuser,
+		IsBanned:     u.IsBanned,
+	}, nil
 }
 
 func (s *Service) createSession(user domain.User, payload domain.UserPayload) domain.Session {
