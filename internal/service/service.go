@@ -40,8 +40,8 @@ type tokenizer interface {
 }
 
 type Repos struct {
-	sessionRepo   sessionRepo
-	blacklistRepo blacklistRepo
+	SessionRepo   sessionRepo
+	BlacklistRepo blacklistRepo
 }
 
 type Deps struct {
@@ -98,7 +98,7 @@ func (s *Service) Authenticate(
 			e.NewErrInternal(fmt.Errorf("creating tokens: %w", err))
 	}
 
-	if err := s.sessionRepo.Create(ctx, session); err != nil {
+	if err := s.SessionRepo.Create(ctx, session); err != nil {
 		return domain.RefreshToken{},
 			domain.AccessToken{},
 			e.NewErrInternal(fmt.Errorf("creating session: %w", err))
@@ -137,7 +137,7 @@ func (s *Service) RefreshSession(
 		return
 	}
 
-	blacklisted, err := s.blacklistRepo.IsTokenBlacklisted(ctx, parsedRefToken.JTI)
+	blacklisted, err := s.BlacklistRepo.IsTokenBlacklisted(ctx, parsedRefToken.JTI)
 	if err != nil {
 		internalErr(err, "checking refresh token is blacklisted")
 		return
@@ -152,13 +152,13 @@ func (s *Service) RefreshSession(
 		return
 	}
 
-	sessionID, err := s.sessionRepo.GetSessionIDByRefreshJTI(ctx, parsedRefToken.JTI)
+	sessionID, err := s.SessionRepo.GetSessionIDByRefreshJTI(ctx, parsedRefToken.JTI)
 	if err != nil {
 		errRef = s.errGetSessionID(err)
 		return
 	}
 
-	session, err := s.sessionRepo.Session(ctx, sessionID)
+	session, err := s.SessionRepo.Session(ctx, sessionID)
 	if err != nil {
 		unauthorizedErr(
 			err,
@@ -198,7 +198,7 @@ func (s *Service) RefreshSession(
 		return
 	}
 
-	if err := s.sessionRepo.RotateSession(ctx, session, oldJTI, session.RefreshJTI); err != nil {
+	if err := s.SessionRepo.RotateSession(ctx, session, oldJTI, session.RefreshJTI); err != nil {
 		internalErr(err, "updating session")
 	}
 
@@ -214,7 +214,7 @@ func (s *Service) Logout(ctx context.Context, rfToken string) error {
 		)
 	}
 
-	sessionID, err := s.sessionRepo.GetSessionIDByRefreshJTI(ctx, parsedRefToken.JTI)
+	sessionID, err := s.SessionRepo.GetSessionIDByRefreshJTI(ctx, parsedRefToken.JTI)
 	if err != nil {
 		var errWrapper *e.ErrWrapper
 
@@ -229,14 +229,14 @@ func (s *Service) Logout(ctx context.Context, rfToken string) error {
 		)
 	}
 
-	session, err := s.sessionRepo.Session(ctx, sessionID)
+	session, err := s.SessionRepo.Session(ctx, sessionID)
 	if err != nil {
 		return e.NewErrInternal(
 			fmt.Errorf("getting session: %w", err),
 		)
 	}
 
-	if err := s.sessionRepo.DelSession(ctx, session); err != nil {
+	if err := s.SessionRepo.DelSession(ctx, session); err != nil {
 		return e.NewErrInternal(
 			fmt.Errorf("deleting session: %w", err),
 		)
@@ -254,7 +254,7 @@ func (s *Service) LogoutAllSession(ctx context.Context, rfToken string) error {
 		)
 	}
 
-	sessionIDs, err := s.sessionRepo.UserSessions(ctx, parsedRefToken.SUB)
+	sessionIDs, err := s.SessionRepo.UserSessions(ctx, parsedRefToken.SUB)
 	if err != nil {
 		return e.NewErrInternal(
 			fmt.Errorf("getting user sessions: %w", err),
@@ -265,14 +265,14 @@ func (s *Service) LogoutAllSession(ctx context.Context, rfToken string) error {
 		return nil
 	}
 
-	sessions, err := s.sessionRepo.Sessions(ctx, sessionIDs)
+	sessions, err := s.SessionRepo.Sessions(ctx, sessionIDs)
 	if err != nil {
 		return e.NewErrInternal(
 			fmt.Errorf("getting sessions: %w", err),
 		)
 	}
 
-	if err := s.sessionRepo.DelAllSessions(ctx, parsedRefToken.SUB, sessions); err != nil {
+	if err := s.SessionRepo.DelAllSessions(ctx, parsedRefToken.SUB, sessions); err != nil {
 		return e.NewErrInternal(
 			fmt.Errorf("deleting all sessions: %w", err),
 		)
@@ -293,7 +293,7 @@ func (s *Service) GetUserSessions(
 		)
 	}
 
-	sessionIDs, err := s.sessionRepo.UserSessions(ctx, parsedRefToken.SUB)
+	sessionIDs, err := s.SessionRepo.UserSessions(ctx, parsedRefToken.SUB)
 	if err != nil {
 		return nil, e.NewErrInternal(
 			fmt.Errorf("getting user sessions: %w", err),
@@ -304,7 +304,7 @@ func (s *Service) GetUserSessions(
 		return nil, nil
 	}
 
-	sessions, err := s.sessionRepo.Sessions(ctx, sessionIDs)
+	sessions, err := s.SessionRepo.Sessions(ctx, sessionIDs)
 	if err != nil {
 		return nil, e.NewErrInternal(
 			fmt.Errorf("getting sessions: %w", err),

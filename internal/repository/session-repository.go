@@ -24,7 +24,7 @@ type SessionRepository struct {
 	ttl    time.Duration
 }
 
-func New(client *redis.Client, keys rkBuilder, timeout time.Duration) *SessionRepository {
+func NewSessionRepository(client *redis.Client, keys rkBuilder, timeout time.Duration) *SessionRepository {
 	return &SessionRepository{
 		client: client,
 		keys:   keys,

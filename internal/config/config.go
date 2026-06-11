@@ -8,6 +8,12 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type GRPC struct {
+	Port        string `yaml:"port"`
+	UserApiHost string `yaml:"user_api_host"`
+	UserApiPort string `yaml:"user_api_port"`
+}
+
 type HTTP struct {
 	Port              string        `yaml:"port" env-default:"8080"`
 	MaxHeaderBytes    int           `yaml:"max_header_bytes" env-default:"4096"`
@@ -23,19 +29,24 @@ type Settings struct {
 	DefaultTimeout     time.Duration `yaml:"default_timeout"`
 }
 
-type PostgresSettings struct {
-	Host     string `yaml:"host" env-required:"true"`
-	Port     string `yaml:"port"`
-	Username string `env:"DB_USERNAME" env-required:"true"`
-	Password string `env:"DB_PASSWORD" env-required:"true"`
-	DBName   string `env:"DB_NAME" env-required:"true"`
-	SSLMode  string `yaml:"ssl_mode"`
+type KeyBuilder struct {
+	Prev    string `yaml:"prev"`
+	Version string `yaml:"version"`
+}
+
+type Redis struct {
+	Addr           string        `env:"REDIS_ADDR"`
+	Password       string        `env:"REDIS_PASSWORD"`
+	DB             int           `env:"REDIS_DB"`
+	DefaultTimeout time.Duration `yaml:"default_timeout"`
 }
 
 type Config struct {
-	HTTP     HTTP             `yaml:"http"`
-	DB       PostgresSettings `yaml:"db"`
-	Settings Settings         `yaml:"settings"`
+	HTTP       HTTP       `yaml:"http"`
+	GRPC       GRPC       `yaml:"grpc"`
+	Redis      Redis      `yaml:"db"`
+	Settings   Settings   `yaml:"settings"`
+	KeyBuilder KeyBuilder `yaml:"key_builder"`
 }
 
 func New(path string) (*Config, error) {
