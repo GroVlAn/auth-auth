@@ -35,10 +35,19 @@ type KeyBuilder struct {
 }
 
 type Redis struct {
+	Host           string        `env:"REDIS_HOST"`
 	Addr           string        `env:"REDIS_ADDR"`
 	Password       string        `env:"REDIS_PASSWORD"`
 	DB             int           `env:"REDIS_DB"`
 	DefaultTimeout time.Duration `yaml:"default_timeout"`
+}
+
+type Hasher struct {
+	Time    uint32 `env:"HASH_TIME" env-required:"true"`
+	Memory  uint32 `env:"HASH_MEMORY" env-required:"true"`
+	Threads uint8  `env:"HASH_THREADS" env-required:"true"`
+	KeyLen  uint32 `env:"HASH_KEY_LEN" env-required:"true"`
+	SaltLen uint32 `env:"HASH_SALT_LEN" env-required:"true"`
 }
 
 type Config struct {
@@ -47,6 +56,7 @@ type Config struct {
 	Redis      Redis      `yaml:"db"`
 	Settings   Settings   `yaml:"settings"`
 	KeyBuilder KeyBuilder `yaml:"key_builder"`
+	Hasher     Hasher     `yaml:"hasher"`
 }
 
 func New(path string) (*Config, error) {

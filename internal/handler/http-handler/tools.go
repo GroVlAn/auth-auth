@@ -10,25 +10,26 @@ import (
 	"strings"
 
 	"github.com/GroVlAn/auth-auth/internal/domain"
-	"github.com/GroVlAn/auth-auth/internal/domain/e"
+	"github.com/GroVlAn/auth-base/ew"
+	"github.com/GroVlAn/auth-base/ew/httpx"
 )
 
 func (h *HTTPHandler) extractBearerToken(r *http.Request) (string, error) {
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
-		return "", e.NewErrUnauthorized(
+		return "", ew.New(
+			ew.ErrorTypeUnauthorized,
 			errors.New("authorization header is missing"),
-			"authorization header is missing",
-		)
+		).Msg("authorization header is missing")
 	}
 
 	// Разделяем заголовок по пробелу
 	parts := strings.Split(authHeader, " ")
 	if len(parts) != 2 || parts[0] != "Bearer" {
-		return "", e.NewErrUnauthorized(
+		return "", ew.New(
+			ew.ErrorTypeUnauthorized,
 			errors.New("invalid authorization format"),
-			"invalid authorization format",
-		)
+		).Msg("invalid authorization format")
 	}
 
 	return parts[1], nil
@@ -48,93 +49,24 @@ func (h *HTTPHandler) sendResponse(w http.ResponseWriter, res domain.Response, s
 	}
 }
 
-func (h *HTTPHandler) handleError(err error) (int, domain.Response) {
-	var errValidation *e.ErrValidation
-	var errWrapper *e.ErrWrapper
+func (h *HTTPHandler) handleError(w http.ResponseWriter, err error) {
+	respErr := httpx.HandleError(err)
 
-	if errors.As(err, &errValidation) {
-		return h.handleValidationError(err, errValidation)
-	}
-
-	if errors.As(err, &errWrapper) {
-		return h.handleErrorWrapper(errWrapper)
-	}
-
-	h.l.Error().Err(err).Msg("unexpected error occurred")
-	return http.StatusInternalServerError, domain.Response{
+	resp := domain.Response{
 		Error: &domain.ErrorResponse{
-			Code: http.StatusInternalServerError,
-			Text: "internal server error",
+			Code: respErr.Status,
+			Text: respErr.Message,
 		},
+		Data: respErr.Fields,
 	}
-}
 
-func (h *HTTPHandler) handleValidationError(err error, errValidation *e.ErrValidation) (int, domain.Response) {
-	h.l.Error().Err(err).Msg("validation error occurred")
+	h.l.Err(err).Msg(respErr.LogMsg)
 
-	data := errValidation.Data()
-
-	return http.StatusBadRequest, domain.Response{
-		Error: &domain.ErrorResponse{
-			Code: http.StatusBadRequest,
-			Text: errValidation.Error(),
-		},
-		Data: data,
-	}
-}
-
-func (h *HTTPHandler) handleErrorWrapper(errWrapper *e.ErrWrapper) (int, domain.Response) {
-	switch errWrapper.ErrorType() {
-	case e.ErrorTypeNotFound:
-		h.l.Error().Err(errWrapper.Unwrap()).Msg("error not found occurred")
-
-		return http.StatusNotFound, domain.Response{
-			Error: &domain.ErrorResponse{
-				Code: http.StatusNotFound,
-				Text: errWrapper.Error(),
-			},
-		}
-	case e.ErrorTypeConflict:
-		h.l.Error().Err(errWrapper.Unwrap()).Msg("error conflict occurred")
-
-		return http.StatusConflict, domain.Response{
-			Error: &domain.ErrorResponse{
-				Code: http.StatusConflict,
-				Text: errWrapper.Error(),
-			},
-		}
-	case e.ErrorTypeUnauthorized:
-		h.l.Error().Err(errWrapper.Unwrap()).Msg("error unauthorized occurred")
-
-		return http.StatusUnauthorized, domain.Response{
-			Error: &domain.ErrorResponse{
-				Code: http.StatusUnauthorized,
-				Text: errWrapper.Error(),
-			},
-		}
-	case e.ErrorTypeInternal:
-		h.l.Error().Err(errWrapper.Unwrap()).Msg("error internal occurred")
-
-		return http.StatusInternalServerError, domain.Response{
-			Error: &domain.ErrorResponse{
-				Code: http.StatusInternalServerError,
-				Text: errWrapper.Error(),
-			},
-		}
-	default:
-		h.l.Error().Err(errWrapper.Unwrap()).Msg("error internal(not wrapped) occurred")
-
-		return http.StatusInternalServerError, domain.Response{
-			Error: &domain.ErrorResponse{
-				Code: http.StatusInternalServerError,
-				Text: "internal server error",
-			},
-		}
-	}
+	h.sendResponse(w, resp, respErr.Status)
 }
 
 func (h *HTTPHandler) handleDecodeBody(w http.ResponseWriter, err error) {
-	ev := e.NewErrValidation("failed read request body")
+	ev := ew.NewErrValidation("failed read request body")
 
 	switch e := err.(type) {
 	case *json.SyntaxError:
@@ -151,8 +83,7 @@ func (h *HTTPHandler) handleDecodeBody(w http.ResponseWriter, err error) {
 
 	h.l.Error().Err(err).Msg("failed to decode request body")
 
-	status, res := h.handleError(ev)
-	h.sendResponse(w, res, status)
+	h.handleError(w, ev)
 }
 
 func (h *HTTPHandler) withBodyClose(body io.ReadCloser, fn func(io.ReadCloser)) {

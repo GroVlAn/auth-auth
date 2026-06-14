@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/GroVlAn/auth-auth/internal/domain/e"
+	"github.com/GroVlAn/auth-base/ew"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -26,8 +27,10 @@ func (br *BlacklistRepository) AddToBlackList(ctx context.Context, jti string, e
 	key := br.rkBuilder.BlacklistKey(jti)
 
 	if err := br.rc.Set(ctx, key, "1", exp).Err(); err != nil {
-		return e.NewErrInternal(fmt.Errorf("adding token to black list: %w", err))
-
+		return ew.New(
+			ew.ErrorTypeInternal,
+			fmt.Errorf("adding token to black list: %w", err),
+		)
 	}
 
 	return nil
@@ -43,7 +46,10 @@ func (br *BlacklistRepository) IsTokenBlacklisted(ctx context.Context, jti strin
 			return false, nil
 		}
 
-		return false, e.NewErrInternal(fmt.Errorf("adding token to black list: %w", err))
+		return false, ew.New(
+			ew.ErrorTypeInternal,
+			fmt.Errorf("adding token to black list: %w", err),
+		)
 	}
 
 	return val != "", nil

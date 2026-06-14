@@ -6,6 +6,7 @@ import (
 	api "github.com/GroVlAn/auth-api/auth"
 	"github.com/GroVlAn/auth-auth/internal/domain"
 	"github.com/GroVlAn/auth-auth/internal/infrastructure/requestinfo"
+	"github.com/GroVlAn/auth-base/ew/grpcx"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -26,7 +27,7 @@ func (h *GRPCHandler) Auth(ctx context.Context, reqAuthUser *api.AuthUser) (*api
 
 	rfToken, accToken, err := h.s.Authenticate(ctx, authUser, userPayload)
 	if err != nil {
-		return nil, h.handleError(err)
+		return nil, grpcx.HandleError(err)
 	}
 
 	return &api.Tokens{
@@ -51,7 +52,7 @@ func (h *GRPCHandler) Refresh(ctx context.Context, reqRefToken *api.RefreshToken
 
 	rfToken, accToken, err := h.s.RefreshSession(ctx, reqRefToken.Token)
 	if err != nil {
-		return nil, h.handleError(err)
+		return nil, grpcx.HandleError(err)
 	}
 
 	return &api.Tokens{
@@ -75,7 +76,7 @@ func (h *GRPCHandler) Logout(ctx context.Context, reqRefToken *api.RefreshToken)
 	defer cancel()
 
 	if err := h.s.Logout(ctx, reqRefToken.Token); err != nil {
-		return nil, h.handleError(err)
+		return nil, grpcx.HandleError(err)
 	}
 
 	return &api.Success{
@@ -88,7 +89,7 @@ func (h *GRPCHandler) LogoutAll(ctx context.Context, reqRefToken *api.RefreshTok
 	defer cancel()
 
 	if err := h.s.LogoutAllSession(ctx, reqRefToken.Token); err != nil {
-		return nil, h.handleError(err)
+		return nil, grpcx.HandleError(err)
 	}
 
 	return &api.Success{
@@ -102,7 +103,7 @@ func (h *GRPCHandler) GetUserSessions(ctx context.Context, reqRefToken *api.Refr
 
 	userSessions, err := h.s.GetUserSessions(ctx, reqRefToken.Token)
 	if err != nil {
-		return nil, h.handleError(err)
+		return nil, grpcx.HandleError(err)
 	}
 
 	respUserSessions := make([]*api.UserSession, 0, len(userSessions))

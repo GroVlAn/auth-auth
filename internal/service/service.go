@@ -10,6 +10,7 @@ import (
 	api "github.com/GroVlAn/auth-api/user"
 	"github.com/GroVlAn/auth-auth/internal/domain"
 	"github.com/GroVlAn/auth-auth/internal/domain/e"
+	"github.com/GroVlAn/auth-base/ew"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -39,6 +40,10 @@ type tokenizer interface {
 	ParseAccessToken(token string) (domain.AccessClaims, error)
 }
 
+type hasher interface {
+	Compare(encodedHash, password string) error
+}
+
 type Repos struct {
 	SessionRepo   sessionRepo
 	BlacklistRepo blacklistRepo
@@ -52,15 +57,23 @@ type Deps struct {
 type Service struct {
 	tokenizer  tokenizer
 	userClient api.UserServiceClient
+	hasher     hasher
 	Deps
 	Repos
 }
 
-func New(repos Repos, tokenizer tokenizer, userClient api.UserServiceClient, deps Deps) *Service {
+func New(
+	repos Repos,
+	tokenizer tokenizer,
+	userClient api.UserServiceClient,
+	hasher hasher,
+	deps Deps,
+) *Service {
 	return &Service{
 		tokenizer:  tokenizer,
 		Deps:       deps,
 		userClient: userClient,
+		hasher:     hasher,
 		Repos:      repos,
 	}
 }
@@ -74,18 +87,19 @@ func (s *Service) Authenticate(
 	if err != nil {
 		return domain.RefreshToken{},
 			domain.AccessToken{},
-			e.NewErrUnauthorized(
+			ew.New(
+				ew.ErrorTypeUnauthorized,
 				fmt.Errorf("getting user: %w", err),
-				"username or password no valid",
-			)
+			).Msg("username or password no valid")
 	}
 
-	fmt.Println(user.PasswordHash)
-	fmt.Println(authUser.Password)
-	if err := s.verifyPassword(user.PasswordHash, authUser.Password); err != nil {
+	if err := s.hasher.Compare(user.PasswordHash, authUser.Password); err != nil {
 		return domain.RefreshToken{},
 			domain.AccessToken{},
-			err
+			ew.New(
+				ew.ErrorTypeUnauthorized,
+				fmt.Errorf("comparing hash adn password: %w", err),
+			).Msg("username or password no valid")
 	}
 
 	session := s.createSession(user, payload)
@@ -94,13 +108,19 @@ func (s *Service) Authenticate(
 	if err != nil {
 		return domain.RefreshToken{},
 			domain.AccessToken{},
-			e.NewErrInternal(fmt.Errorf("creating tokens: %w", err))
+			ew.New(
+				ew.ErrorTypeInternal,
+				fmt.Errorf("creating tokens: %w", err),
+			)
 	}
 
 	if err := s.SessionRepo.Create(ctx, session); err != nil {
 		return domain.RefreshToken{},
 			domain.AccessToken{},
-			e.NewErrInternal(fmt.Errorf("creating session: %w", err))
+			ew.New(
+				ew.ErrorTypeInternal,
+				fmt.Errorf("creating session: %w", err),
+			)
 	}
 
 	return refToken, accToken, nil
@@ -115,15 +135,16 @@ func (s *Service) RefreshSession(
 	errRef error,
 ) {
 	internalErr := func(err error, msg string) {
-		errRef = e.NewErrInternal(
+		errRef = ew.New(
+			ew.ErrorTypeInternal,
 			fmt.Errorf("%s: %w", msg, err),
 		)
 	}
 	unauthorizedErr := func(err error, logMsg, errMsg string) {
-		errRef = e.NewErrUnauthorized(
+		errRef = ew.New(
+			ew.ErrorTypeUnauthorized,
 			fmt.Errorf("%s: %w", logMsg, err),
-			errMsg,
-		)
+		).Msg(errMsg)
 	}
 
 	parsedRefToken, err := s.tokenizer.ParseRefreshToken(rfToken)
@@ -207,36 +228,39 @@ func (s *Service) RefreshSession(
 func (s *Service) Logout(ctx context.Context, rfToken string) error {
 	parsedRefToken, err := s.tokenizer.ParseRefreshToken(rfToken)
 	if err != nil {
-		return e.NewErrUnauthorized(
+		return ew.New(
+			ew.ErrorTypeUnauthorized,
 			fmt.Errorf("parsed refresh token: %w", err),
-			"invalid token",
-		)
+		).Msg("invalid token")
 	}
 
 	sessionID, err := s.SessionRepo.GetSessionIDByRefreshJTI(ctx, parsedRefToken.JTI)
 	if err != nil {
-		var errWrapper *e.ErrWrapper
+		var errWrapper *ew.Error
 
 		if errors.As(err, &errWrapper) {
-			if errWrapper.ErrorType() == e.ErrorTypeNotFound {
+			if errWrapper.ErrorType() == ew.ErrorTypeNotFound {
 				return nil
 			}
 		}
 
-		return e.NewErrInternal(
+		return ew.New(
+			ew.ErrorTypeInternal,
 			fmt.Errorf("getting session ID by refresh jti: %w", err),
 		)
 	}
 
 	session, err := s.SessionRepo.Session(ctx, sessionID)
 	if err != nil {
-		return e.NewErrInternal(
+		return ew.New(
+			ew.ErrorTypeInternal,
 			fmt.Errorf("getting session: %w", err),
 		)
 	}
 
 	if err := s.SessionRepo.DelSession(ctx, session); err != nil {
-		return e.NewErrInternal(
+		return ew.New(
+			ew.ErrorTypeInternal,
 			fmt.Errorf("deleting session: %w", err),
 		)
 	}
@@ -247,15 +271,16 @@ func (s *Service) Logout(ctx context.Context, rfToken string) error {
 func (s *Service) LogoutAllSession(ctx context.Context, rfToken string) error {
 	parsedRefToken, err := s.tokenizer.ParseRefreshToken(rfToken)
 	if err != nil {
-		return e.NewErrUnauthorized(
+		return ew.New(
+			ew.ErrorTypeUnauthorized,
 			fmt.Errorf("parsed refresh token: %w", err),
-			"invalid token",
-		)
+		).Msg("invalid token")
 	}
 
 	sessionIDs, err := s.SessionRepo.UserSessions(ctx, parsedRefToken.SUB)
 	if err != nil {
-		return e.NewErrInternal(
+		return ew.New(
+			ew.ErrorTypeInternal,
 			fmt.Errorf("getting user sessions: %w", err),
 		)
 	}
@@ -266,13 +291,15 @@ func (s *Service) LogoutAllSession(ctx context.Context, rfToken string) error {
 
 	sessions, err := s.SessionRepo.Sessions(ctx, sessionIDs)
 	if err != nil {
-		return e.NewErrInternal(
+		return ew.New(
+			ew.ErrorTypeInternal,
 			fmt.Errorf("getting sessions: %w", err),
 		)
 	}
 
 	if err := s.SessionRepo.DelAllSessions(ctx, parsedRefToken.SUB, sessions); err != nil {
-		return e.NewErrInternal(
+		return ew.New(
+			ew.ErrorTypeInternal,
 			fmt.Errorf("deleting all sessions: %w", err),
 		)
 	}
@@ -286,15 +313,16 @@ func (s *Service) GetUserSessions(
 ) ([]domain.UserSession, error) {
 	parsedRefToken, err := s.tokenizer.ParseRefreshToken(rfToken)
 	if err != nil {
-		return nil, e.NewErrUnauthorized(
+		return nil, ew.New(
+			ew.ErrorTypeUnauthorized,
 			fmt.Errorf("parsed refresh token: %w", err),
-			"invalid token",
-		)
+		).Msg("invalid token")
 	}
 
 	sessionIDs, err := s.SessionRepo.UserSessions(ctx, parsedRefToken.SUB)
 	if err != nil {
-		return nil, e.NewErrInternal(
+		return nil, ew.New(
+			ew.ErrorTypeInternal,
 			fmt.Errorf("getting user sessions: %w", err),
 		)
 	}
@@ -305,7 +333,8 @@ func (s *Service) GetUserSessions(
 
 	sessions, err := s.SessionRepo.Sessions(ctx, sessionIDs)
 	if err != nil {
-		return nil, e.NewErrInternal(
+		return nil, ew.New(
+			ew.ErrorTypeInternal,
 			fmt.Errorf("getting sessions: %w", err),
 		)
 	}
@@ -431,31 +460,35 @@ func (s *Service) createAccessToken(rfID string, user domain.User) (domain.Acces
 func (s *Service) verifyPassword(passwordHash, password string) error {
 	err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password))
 	if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-		return e.NewErrUnauthorized(
+		return ew.New(
+			ew.ErrorTypeUnauthorized,
 			fmt.Errorf("comparing hash adn password: %w", err),
-			"invalid password",
-		)
+		).Msg("invalid password")
 	}
 	if err != nil {
-		return e.NewErrInternal(fmt.Errorf("comparing hash and password: %w", err))
+		return ew.New(
+			ew.ErrorTypeInternal,
+			fmt.Errorf("comparing hash and password: %w", err),
+		)
 	}
 
 	return nil
 }
 
 func (s *Service) errGetSessionID(err error) error {
-	var errWrapper *e.ErrWrapper
+	var errWrapper *ew.Error
 
 	if errors.As(err, &errWrapper) {
-		if errWrapper.ErrorType() == e.ErrorTypeNotFound {
-			return e.NewErrUnauthorized(
+		if errWrapper.ErrorType() == ew.ErrorTypeNotFound {
+			return ew.New(
+				ew.ErrorTypeUnauthorized,
 				fmt.Errorf("getting session id by refresh token: %w", err),
-				"session id by refresh token not found",
-			)
+			).Msg("session id by refresh token not found")
 		}
 	}
 
-	return e.NewErrInternal(
+	return ew.New(
+		ew.ErrorTypeInternal,
 		fmt.Errorf("getting session id by refresh token: %w", err),
 	)
 }

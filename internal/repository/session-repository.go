@@ -8,8 +8,16 @@ import (
 	"time"
 
 	"github.com/GroVlAn/auth-auth/internal/domain"
-	"github.com/GroVlAn/auth-auth/internal/domain/e"
+	"github.com/GroVlAn/auth-base/ew"
 	"github.com/redis/go-redis/v9"
+)
+
+const (
+	usedRefreshToken    = "refresh token already used"
+	invalidRefreshToken = "invalid refresh token"
+	sessionNotFound     = "session not found"
+	userSessionNotFound = "session not found"
+	sessionIDNotFound   = "session id not found"
 )
 
 type RedisOptions struct {
@@ -35,7 +43,10 @@ func NewSessionRepository(client *redis.Client, keys rkBuilder, timeout time.Dur
 func (r *SessionRepository) Create(ctx context.Context, session domain.Session) error {
 	sessionData, err := json.Marshal(session)
 	if err != nil {
-		return e.NewErrInternal(fmt.Errorf("marshaling session: %w", err))
+		return ew.New(
+			ew.ErrorTypeInternal,
+			fmt.Errorf("marshaling session: %w", err),
+		)
 	}
 
 	pipe := r.client.TxPipeline()
@@ -61,7 +72,10 @@ func (r *SessionRepository) Create(ctx context.Context, session domain.Session) 
 	)
 
 	if _, err := pipe.Exec(ctx); err != nil {
-		return e.NewErrInternal(fmt.Errorf("executing pipeline to create new session: %w", err))
+		return ew.New(
+			ew.ErrorTypeInternal,
+			fmt.Errorf("executing pipeline to create new session: %w", err),
+		)
 	}
 
 	return nil
@@ -70,7 +84,10 @@ func (r *SessionRepository) Create(ctx context.Context, session domain.Session) 
 func (r *SessionRepository) RotateSession(ctx context.Context, session domain.Session, oldJTI, newJTI string) error {
 	sessionData, err := json.Marshal(session)
 	if err != nil {
-		return e.NewErrInternal(fmt.Errorf("marshaling session: %w", err))
+		return ew.New(
+			ew.ErrorTypeInternal,
+			fmt.Errorf("marshaling session: %w", err),
+		)
 	}
 
 	oldRefreshKey := r.keys.RefreshKey(oldJTI)
@@ -79,22 +96,23 @@ func (r *SessionRepository) RotateSession(ctx context.Context, session domain.Se
 		val, err := tx.Get(ctx, oldRefreshKey).Result()
 		if err != nil {
 			if errors.Is(err, redis.Nil) {
-				return e.NewErrUnauthorized(
+				return ew.New(
+					ew.ErrorTypeUnauthorized,
 					fmt.Errorf("refresh token already rotated: %w", err),
-					"refresh token already used",
-				)
+				).Msg(usedRefreshToken)
 			}
 
-			return e.NewErrInternal(
+			return ew.New(
+				ew.ErrorTypeInternal,
 				fmt.Errorf("get refresh token: %w", err),
 			)
 		}
 
 		if val != session.ID {
-			return e.NewErrUnauthorized(
+			return ew.New(
+				ew.ErrorTypeUnauthorized,
 				fmt.Errorf("refresh token session mismatch"),
-				"invalid refresh token",
-			)
+			).Msg(invalidRefreshToken)
 		}
 
 		pipe := r.client.TxPipeline()
@@ -127,12 +145,13 @@ func (r *SessionRepository) RotateSession(ctx context.Context, session domain.Se
 
 		if _, err := pipe.Exec(ctx); err != nil {
 			if errors.Is(err, redis.TxFailedErr) {
-				return e.NewErrConflict(
+				return ew.New(
+					ew.ErrorTypeConflict,
 					fmt.Errorf("refresh token race detected: %w", err),
-					"refresh token already used",
-				)
+				).Msg(usedRefreshToken)
 			}
-			return e.NewErrInternal(
+			return ew.New(
+				ew.ErrorTypeInternal,
 				fmt.Errorf("executing pipeline to update session: %w", err),
 			)
 		}
@@ -153,17 +172,23 @@ func (r *SessionRepository) Session(ctx context.Context, sessionID string) (doma
 	value, err := r.client.Get(ctx, key).Result()
 	switch {
 	case errors.Is(err, redis.Nil):
-		return domain.Session{}, e.NewErrNotFound(
+		return domain.Session{}, ew.New(
+			ew.ErrorTypeNotFound,
 			fmt.Errorf("getting session: %w", err),
-			"session not found",
-		)
+		).Msg(sessionNotFound)
 	case err != nil:
-		return domain.Session{}, e.NewErrInternal(fmt.Errorf("getting session: %w", err))
+		return domain.Session{}, ew.New(
+			ew.ErrorTypeInternal,
+			fmt.Errorf("getting session: %w", err),
+		)
 	default:
 		var session domain.Session
 
 		if err := json.Unmarshal([]byte(value), &session); err != nil {
-			return domain.Session{}, e.NewErrInternal(fmt.Errorf("unmarshaling session: %w", err))
+			return domain.Session{}, ew.New(
+				ew.ErrorTypeInternal,
+				fmt.Errorf("unmarshaling session: %w", err),
+			)
 		}
 
 		return session, nil
@@ -185,7 +210,8 @@ func (r *SessionRepository) Sessions(ctx context.Context, sessionIDs []string) (
 	}
 
 	if _, err := pipe.Exec(ctx); err != nil {
-		return nil, e.NewErrInternal(
+		return nil, ew.New(
+			ew.ErrorTypeInternal,
 			fmt.Errorf("executing pipeline to getting sessions: %w", err),
 		)
 	}
@@ -215,12 +241,15 @@ func (r *SessionRepository) GetSessionIDByRefreshJTI(ctx context.Context, jti st
 	sessionID, err := r.client.Get(ctx, key).Result()
 	switch {
 	case errors.Is(err, redis.Nil):
-		return "", e.NewErrNotFound(
+		return "", ew.New(
+			ew.ErrorTypeNotFound,
 			fmt.Errorf("getting session id by refresh token: %w", err),
-			"session id not found",
-		)
+		).Msg(sessionIDNotFound)
 	case err != nil:
-		return "", e.NewErrInternal(fmt.Errorf("getting session id by refresh token: %w", err))
+		return "", ew.New(
+			ew.ErrorTypeInternal,
+			fmt.Errorf("getting session id by refresh token: %w", err),
+		)
 	default:
 		return sessionID, nil
 	}
@@ -232,12 +261,15 @@ func (r *SessionRepository) UserSessions(ctx context.Context, userID string) ([]
 	sessionIDs, err := r.client.SMembers(ctx, key).Result()
 	switch {
 	case errors.Is(err, redis.Nil):
-		return nil, e.NewErrNotFound(
+		return nil, ew.New(
+			ew.ErrorTypeNotFound,
 			fmt.Errorf("getting user sessions: %w", err),
-			"user sessions not found",
-		)
+		).Msg(userSessionNotFound)
 	case err != nil:
-		return nil, e.NewErrInternal(fmt.Errorf("getting user sessions: %w", err))
+		return nil, ew.New(
+			ew.ErrorTypeInternal,
+			fmt.Errorf("getting user sessions: %w", err),
+		)
 	default:
 		return sessionIDs, nil
 	}
@@ -262,7 +294,8 @@ func (r *SessionRepository) DelSession(ctx context.Context, session domain.Sessi
 	)
 
 	if _, err := pipe.Exec(ctx); err != nil {
-		return e.NewErrInternal(
+		return ew.New(
+			ew.ErrorTypeInternal,
 			fmt.Errorf("executing pipeline to delete session: %w", err),
 		)
 	}
@@ -291,7 +324,8 @@ func (r *SessionRepository) DelAllSessions(ctx context.Context, userID string, s
 	)
 
 	if _, err := pipe.Exec(ctx); err != nil {
-		return e.NewErrInternal(
+		return ew.New(
+			ew.ErrorTypeInternal,
 			fmt.Errorf("executing pipeline to delete all sessions: %w", err),
 		)
 	}
@@ -303,7 +337,10 @@ func (r *SessionRepository) DelRefreshToken(ctx context.Context, jti string) err
 	key := r.keys.RefreshKey(jti)
 
 	if err := r.client.Del(ctx, key).Err(); err != nil {
-		return e.NewErrInternal(fmt.Errorf("deleting refresh token: %w", err))
+		return ew.New(
+			ew.ErrorTypeInternal,
+			fmt.Errorf("deleting refresh token: %w", err),
+		)
 	}
 
 	return nil
@@ -313,7 +350,10 @@ func (r *SessionRepository) RemoveUserSession(ctx context.Context, userID, sessi
 	key := r.keys.UserSessionsKey(userID)
 
 	if err := r.client.SRem(ctx, key, sessionID).Err(); err != nil {
-		return e.NewErrInternal(fmt.Errorf("removing user session: %w", err))
+		return ew.New(
+			ew.ErrorTypeInternal,
+			fmt.Errorf("removing user session: %w", err),
+		)
 	}
 
 	return nil

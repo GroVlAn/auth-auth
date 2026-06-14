@@ -19,6 +19,7 @@ import (
 	grpcserver "github.com/GroVlAn/auth-auth/internal/server/grpc-server"
 	httpserver "github.com/GroVlAn/auth-auth/internal/server/http-server"
 	"github.com/GroVlAn/auth-auth/internal/service"
+	"github.com/GroVlAn/auth-base/crypto"
 	_ "github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
@@ -54,7 +55,7 @@ func main() {
 	}
 
 	rc := redis.NewClient(&redis.Options{
-		Addr:     cfg.Redis.Addr,
+		Addr:     cfg.Redis.Host + ":" + cfg.Redis.Addr,
 		Password: cfg.Redis.Password,
 		DB:       cfg.Redis.DB,
 	})
@@ -79,6 +80,14 @@ func main() {
 
 	grpcClient := api.NewUserServiceClient(con)
 
+	hasher := crypto.New(crypto.Deps{
+		Time:    cfg.Hasher.Time,
+		Memory:  cfg.Hasher.Memory,
+		Threads: cfg.Hasher.Threads,
+		KeyLen:  cfg.Hasher.KeyLen,
+		SaltLen: cfg.Hasher.SaltLen,
+	})
+
 	s := service.New(
 		service.Repos{
 			BlacklistRepo: blRepo,
@@ -86,6 +95,7 @@ func main() {
 		},
 		tokenizer,
 		grpcClient,
+		hasher,
 		service.Deps{
 			TokenRefreshEndTTL: cfg.Settings.TokenRefreshEndTTL,
 			TokenAccessEndTTL:  cfg.Settings.TokenAccessEndTTL,
