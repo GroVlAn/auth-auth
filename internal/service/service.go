@@ -80,13 +80,12 @@ func (s *Service) Authenticate(
 			)
 	}
 
+	fmt.Println(user.PasswordHash)
+	fmt.Println(authUser.Password)
 	if err := s.verifyPassword(user.PasswordHash, authUser.Password); err != nil {
 		return domain.RefreshToken{},
 			domain.AccessToken{},
-			e.NewErrUnauthorized(
-				fmt.Errorf("verifying password: %w", err),
-				"invalid login or password",
-			)
+			err
 	}
 
 	session := s.createSession(user, payload)
@@ -438,7 +437,7 @@ func (s *Service) verifyPassword(passwordHash, password string) error {
 		)
 	}
 	if err != nil {
-		return e.NewErrInternal(fmt.Errorf("comparing hash adn password: %w", err))
+		return e.NewErrInternal(fmt.Errorf("comparing hash and password: %w", err))
 	}
 
 	return nil

@@ -12,7 +12,7 @@ import (
 	api "github.com/GroVlAn/auth-api/user"
 	"github.com/GroVlAn/auth-auth/internal/config"
 	grpchandler "github.com/GroVlAn/auth-auth/internal/handler/grpc-handler"
-	httphandler "github.com/GroVlAn/auth-auth/internal/handler/http"
+	httphandler "github.com/GroVlAn/auth-auth/internal/handler/http-handler"
 	"github.com/GroVlAn/auth-auth/internal/infrastructure/kbuilder"
 	"github.com/GroVlAn/auth-auth/internal/infrastructure/tokens"
 	"github.com/GroVlAn/auth-auth/internal/repository"

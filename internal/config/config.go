@@ -15,7 +15,7 @@ type GRPC struct {
 }
 
 type HTTP struct {
-	Port              string        `yaml:"port" env-default:"8080"`
+	Port              string        `yaml:"port" env-default:"9080"`
 	MaxHeaderBytes    int           `yaml:"max_header_bytes" env-default:"4096"`
 	ReadHeaderTimeout time.Duration `yaml:"read_header_timeout" env-default:"10s"`
 	WriteTimeout      time.Duration `yaml:"write_timeout" env-default:"10s"`

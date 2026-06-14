@@ -1,0 +1,21 @@
+http:
+  port: '9080'
+  max_header_bytes: 1048576
+  read_header_timeout: 10s
+  write_timeout: 10s
+  base_http_path: '/api/auth'
+
+grpc:
+  port: '9010'
+  user_api_host: 'localhost'
+  user_api_port: '8010'
+
+key_builder:
+  prev: 'auth'
+  version: 1
+
+settings:
+  default_timeout: 15s
+
+redis:
+  default_timeout: 15s
