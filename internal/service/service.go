@@ -12,7 +12,12 @@ import (
 	"github.com/GroVlAn/auth-auth/internal/domain/e"
 	"github.com/GroVlAn/auth-base/ew"
 	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
+)
+
+const (
+	invalidLoginOrPassword = "login or password no valid"
+	invalidToken           = "invalid refresh token"
+	sessionNotFound        = "session by refresh token not found"
 )
 
 type sessionRepo interface {
@@ -90,7 +95,7 @@ func (s *Service) Authenticate(
 			ew.New(
 				ew.ErrorTypeUnauthorized,
 				fmt.Errorf("getting user: %w", err),
-			).Msg("username or password no valid")
+			).Msg(invalidLoginOrPassword)
 	}
 
 	if err := s.hasher.Compare(user.PasswordHash, authUser.Password); err != nil {
@@ -99,7 +104,7 @@ func (s *Service) Authenticate(
 			ew.New(
 				ew.ErrorTypeUnauthorized,
 				fmt.Errorf("comparing hash adn password: %w", err),
-			).Msg("username or password no valid")
+			).Msg(invalidLoginOrPassword)
 	}
 
 	session := s.createSession(user, payload)
@@ -152,7 +157,7 @@ func (s *Service) RefreshSession(
 		unauthorizedErr(
 			err,
 			"parsing refresh token",
-			"invalid refresh token",
+			invalidToken,
 		)
 		return
 	}
@@ -183,7 +188,7 @@ func (s *Service) RefreshSession(
 		unauthorizedErr(
 			err,
 			"getting session",
-			"session by refresh token not found",
+			sessionNotFound,
 		)
 		return
 	}
@@ -193,7 +198,7 @@ func (s *Service) RefreshSession(
 		unauthorizedErr(
 			e.ErrInvalidToken,
 			"refresh token mismatch",
-			"invalid refresh token",
+			invalidToken,
 		)
 		return
 	}
@@ -207,7 +212,7 @@ func (s *Service) RefreshSession(
 		unauthorizedErr(
 			e.ErrInvalidToken,
 			"user not found",
-			"invalid refresh token",
+			invalidToken,
 		)
 		return
 	}
@@ -457,24 +462,6 @@ func (s *Service) createAccessToken(rfID string, user domain.User) (domain.Acces
 	return accessToken, nil
 }
 
-func (s *Service) verifyPassword(passwordHash, password string) error {
-	err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password))
-	if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
-		return ew.New(
-			ew.ErrorTypeUnauthorized,
-			fmt.Errorf("comparing hash adn password: %w", err),
-		).Msg("invalid password")
-	}
-	if err != nil {
-		return ew.New(
-			ew.ErrorTypeInternal,
-			fmt.Errorf("comparing hash and password: %w", err),
-		)
-	}
-
-	return nil
-}
-
 func (s *Service) errGetSessionID(err error) error {
 	var errWrapper *ew.Error
 
@@ -483,7 +470,7 @@ func (s *Service) errGetSessionID(err error) error {
 			return ew.New(
 				ew.ErrorTypeUnauthorized,
 				fmt.Errorf("getting session id by refresh token: %w", err),
-			).Msg("session id by refresh token not found")
+			).Msg(sessionNotFound)
 		}
 	}
 
