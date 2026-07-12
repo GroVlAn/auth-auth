@@ -3,7 +3,7 @@ http:
   max_header_bytes: 1048576
   read_header_timeout: 10s
   write_timeout: 10s
-  base_http_path: '/api/auth'
+  base_http_path: '/api/v1/auth'
 
 grpc:
   port: '9011'

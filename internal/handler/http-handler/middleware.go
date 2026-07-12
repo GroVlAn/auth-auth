@@ -1,19 +1,17 @@
 package http_handler
 
 import (
-	"net/http"
-
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/cors"
 )
 
-func (h *HTTPHandler) Cors(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-
-		next.ServeHTTP(w, r)
-	})
-}
-
-func (h *HTTPHandler) useMiddleware(r *chi.Mux) {
-	r.Use(h.Cors)
+func (h *HTTPHandler) cors(r *chi.Mux) {
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"https://*", "http://*"},
+		AllowedMethods:   []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
 }

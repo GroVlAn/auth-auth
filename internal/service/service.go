@@ -98,6 +98,12 @@ func (s *Service) Authenticate(
 			).Msg(invalidLoginOrPassword)
 	}
 
+	if err := s.validateUserStatus(ctx, user); err != nil {
+		return domain.RefreshToken{},
+			domain.AccessToken{},
+			err
+	}
+
 	if err := s.hasher.Compare(user.PasswordHash, authUser.Password); err != nil {
 		return domain.RefreshToken{},
 			domain.AccessToken{},
@@ -282,31 +288,8 @@ func (s *Service) LogoutAllSession(ctx context.Context, rfToken string) error {
 		).Msg("invalid token")
 	}
 
-	sessionIDs, err := s.SessionRepo.UserSessions(ctx, parsedRefToken.SUB)
-	if err != nil {
-		return ew.New(
-			ew.ErrorTypeInternal,
-			fmt.Errorf("getting user sessions: %w", err),
-		)
-	}
-
-	if len(sessionIDs) == 0 {
-		return nil
-	}
-
-	sessions, err := s.SessionRepo.Sessions(ctx, sessionIDs)
-	if err != nil {
-		return ew.New(
-			ew.ErrorTypeInternal,
-			fmt.Errorf("getting sessions: %w", err),
-		)
-	}
-
-	if err := s.SessionRepo.DelAllSessions(ctx, parsedRefToken.SUB, sessions); err != nil {
-		return ew.New(
-			ew.ErrorTypeInternal,
-			fmt.Errorf("deleting all sessions: %w", err),
-		)
+	if err := s.deleteAllSessions(ctx, parsedRefToken.SUB); err != nil {
+		return err
 	}
 
 	return nil
@@ -388,6 +371,31 @@ func (s *Service) getUser(ctx context.Context, authUser domain.AuthUser) (domain
 		IsSuperuser:  u.IsSuperuser,
 		IsBanned:     u.IsBanned,
 	}, nil
+}
+
+func (s *Service) validateUserStatus(ctx context.Context, user domain.User) error {
+	var errValidation error
+	if !user.IsActive {
+		errValidation = ew.New(
+			ew.ErrorTypeUnauthorized,
+			errors.New("user not activated"),
+		).Msg("user not activated")
+	}
+
+	if user.IsBanned {
+		errValidation = ew.New(
+			ew.ErrorTypeUnauthorized,
+			errors.New("user is banned"),
+		).Msg("user is banned")
+	}
+
+	if errValidation != nil {
+		if err := s.deleteAllSessions(ctx, user.ID); err != nil {
+			return err
+		}
+	}
+
+	return errValidation
 }
 
 func (s *Service) createSession(user domain.User, payload domain.UserPayload) domain.Session {
@@ -478,4 +486,35 @@ func (s *Service) errGetSessionID(err error) error {
 		ew.ErrorTypeInternal,
 		fmt.Errorf("getting session id by refresh token: %w", err),
 	)
+}
+
+func (s *Service) deleteAllSessions(ctx context.Context, userID string) error {
+	sessionIDs, err := s.SessionRepo.UserSessions(ctx, userID)
+	if err != nil {
+		return ew.New(
+			ew.ErrorTypeInternal,
+			fmt.Errorf("getting user sessions: %w", err),
+		)
+	}
+
+	if len(sessionIDs) == 0 {
+		return nil
+	}
+
+	sessions, err := s.SessionRepo.Sessions(ctx, sessionIDs)
+	if err != nil {
+		return ew.New(
+			ew.ErrorTypeInternal,
+			fmt.Errorf("getting sessions: %w", err),
+		)
+	}
+
+	if err := s.SessionRepo.DelAllSessions(ctx, userID, sessions); err != nil {
+		return ew.New(
+			ew.ErrorTypeInternal,
+			fmt.Errorf("deleting all sessions: %w", err),
+		)
+	}
+
+	return nil
 }

@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/GroVlAn/auth-auth/internal/domain"
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
 )
 
@@ -58,7 +58,7 @@ func New(
 func (h *HTTPHandler) Handler() *chi.Mux {
 	r := chi.NewRouter()
 
-	h.useMiddleware(r)
+	h.cors(r)
 
 	r.Route("/", func(r chi.Router) {
 		r.Get("/home", func(w http.ResponseWriter, r *http.Request) {

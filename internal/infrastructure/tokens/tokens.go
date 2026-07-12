@@ -67,8 +67,8 @@ func (t *Tokens) ParseRefreshToken(token string) (domain.RefreshClaims, error) {
 		SUB: tokenDetails["sub"].(string),
 		SID: tokenDetails["sid"].(string),
 		JTI: tokenDetails["jti"].(string),
-		IAT: tokenDetails["IAT"].(int64),
-		EXP: tokenDetails["EXP"].(int64),
+		IAT: int64(tokenDetails["iat"].(float64)),
+		EXP: int64(tokenDetails["exp"].(float64)),
 	}
 
 	if err := tokenClaims.CheckExpired(); err != nil {

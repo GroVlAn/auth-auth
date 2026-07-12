@@ -9,12 +9,12 @@ import (
 
 	"github.com/GroVlAn/auth-auth/internal/domain"
 	"github.com/GroVlAn/auth-base/ew"
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 )
 
 const (
 	authenticateEndpoint   = "/auth"
-	refreshSessionEndpoint = "/auth/refresh"
+	refreshSessionEndpoint = "/refresh"
 	logoutEndpoint         = "/logout"
 	logoutAllEndpoint      = "/logout/all"
 	userSessionsEndpoint   = "/sessions"

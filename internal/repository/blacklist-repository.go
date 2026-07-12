@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/GroVlAn/auth-auth/internal/domain/e"
 	"github.com/GroVlAn/auth-base/ew"
 	"github.com/redis/go-redis/v9"
 )
@@ -42,7 +41,7 @@ func (br *BlacklistRepository) IsTokenBlacklisted(ctx context.Context, jti strin
 	val, err := br.rc.Get(ctx, key).Result()
 
 	if err != nil {
-		if errors.Is(err, e.ErrRedisNotFound) {
+		if errors.Is(err, redis.Nil) {
 			return false, nil
 		}
 
