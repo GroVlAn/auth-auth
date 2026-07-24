@@ -3,7 +3,7 @@ module github.com/GroVlAn/auth-auth
 go 1.25.1
 
 require (
-	github.com/GroVlAn/auth-api v0.0.0-20260609140631-3ec448ab2120
+	github.com/GroVlAn/auth-api v0.0.0-20260724101055-c66c92dfb635
 	github.com/GroVlAn/auth-base v0.0.0-20260614174515-d76ca1fed316
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/ilyakaznacheev/cleanenv v1.5.0
@@ -12,11 +12,7 @@ require (
 	github.com/rs/zerolog v1.35.1
 )
 
-require (
-	github.com/klauspost/compress v1.15.9 // indirect
-	github.com/pierrec/lz4/v4 v4.1.15 // indirect
-	github.com/segmentio/kafka-go v0.4.51 // indirect
-)
+require github.com/stretchr/testify v1.8.0 // indirect
 
 require (
 	golang.org/x/net v0.55.0 // indirect

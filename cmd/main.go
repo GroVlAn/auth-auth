@@ -9,15 +9,15 @@ import (
 	"syscall"
 	"time"
 
-	api "github.com/GroVlAn/auth-api/user"
 	"github.com/GroVlAn/auth-auth/internal/config"
-	grpchandler "github.com/GroVlAn/auth-auth/internal/handler/grpc-handler"
-	httphandler "github.com/GroVlAn/auth-auth/internal/handler/http-handler"
+	grpcHandler "github.com/GroVlAn/auth-auth/internal/handler/grpc-handler"
+	httpHandler "github.com/GroVlAn/auth-auth/internal/handler/http-handler"
+	grpcClient "github.com/GroVlAn/auth-auth/internal/infrastructure/grpc-client"
 	"github.com/GroVlAn/auth-auth/internal/infrastructure/kbuilder"
 	"github.com/GroVlAn/auth-auth/internal/infrastructure/tokens"
 	"github.com/GroVlAn/auth-auth/internal/repository"
-	grpcserver "github.com/GroVlAn/auth-auth/internal/server/grpc-server"
-	httpserver "github.com/GroVlAn/auth-auth/internal/server/http-server"
+	grpcServer "github.com/GroVlAn/auth-auth/internal/server/grpc-server"
+	httpServer "github.com/GroVlAn/auth-auth/internal/server/http-server"
 	"github.com/GroVlAn/auth-auth/internal/service"
 	"github.com/GroVlAn/auth-base/crypto"
 	_ "github.com/lib/pq"
@@ -68,7 +68,7 @@ func main() {
 
 	tokenizer := tokens.New(cfg.Settings.SecretKey)
 
-	con, err := grpc.NewClient(
+	conn, err := grpc.NewClient(
 		cfg.GRPC.UserApiHost+":"+cfg.GRPC.UserApiPort,
 		grpc.WithTransportCredentials(
 			insecure.NewCredentials(),
@@ -77,8 +77,13 @@ func main() {
 	if err != nil {
 		l.Fatal().Err(err).Msg("failed to grpc user service client")
 	}
+	defer func() {
+		if err := conn.Close(); err != nil {
+			l.Error().Err(err).Msg("failed close grpc connection")
+		}
+	}()
 
-	grpcClient := api.NewUserServiceClient(con)
+	grpcClient := grpcClient.New(conn)
 
 	hasher := crypto.New(crypto.Deps{
 		Time:    cfg.Hasher.Time,
@@ -102,20 +107,20 @@ func main() {
 		},
 	)
 
-	h := httphandler.New(
+	h := httpHandler.New(
 		l,
 		s,
-		httphandler.Deps{
+		httpHandler.Deps{
 			BasePath:       cfg.HTTP.BaseHTTPPath,
 			DefaultTimeout: cfg.Settings.DefaultTimeout,
 		},
 	)
 
-	gh := grpchandler.New(l, s, cfg.Settings.DefaultTimeout)
+	gh := grpcHandler.New(l, s, cfg.Settings.DefaultTimeout)
 
-	hServer := httpserver.New(
+	hServer := httpServer.New(
 		h.Handler(),
-		httpserver.Settings{
+		httpServer.Settings{
 			Port:              cfg.HTTP.Port,
 			MaxHeaderBytes:    cfg.HTTP.MaxHeaderBytes,
 			ReadHeaderTimeout: time.Duration(cfg.HTTP.ReadHeaderTimeout) * time.Second,
@@ -123,7 +128,7 @@ func main() {
 		},
 	)
 
-	gServer := grpcserver.New(
+	gServer := grpcServer.New(
 		gh,
 	)
 

@@ -7,7 +7,6 @@ import (
 	"sort"
 	"time"
 
-	api "github.com/GroVlAn/auth-api/user"
 	"github.com/GroVlAn/auth-auth/internal/domain"
 	"github.com/GroVlAn/auth-auth/internal/domain/e"
 	"github.com/GroVlAn/auth-base/ew"
@@ -49,6 +48,10 @@ type hasher interface {
 	Compare(encodedHash, password string) error
 }
 
+type userGRPCClient interface {
+	GetUser(ctx context.Context, authUser domain.AuthUser) (domain.User, error)
+}
+
 type Repos struct {
 	SessionRepo   sessionRepo
 	BlacklistRepo blacklistRepo
@@ -61,7 +64,7 @@ type Deps struct {
 
 type Service struct {
 	tokenizer  tokenizer
-	userClient api.UserServiceClient
+	userClient userGRPCClient
 	hasher     hasher
 	Deps
 	Repos
@@ -70,7 +73,7 @@ type Service struct {
 func New(
 	repos Repos,
 	tokenizer tokenizer,
-	userClient api.UserServiceClient,
+	userClient userGRPCClient,
 	hasher hasher,
 	deps Deps,
 ) *Service {
@@ -88,7 +91,7 @@ func (s *Service) Authenticate(
 	authUser domain.AuthUser,
 	payload domain.UserPayload,
 ) (domain.RefreshToken, domain.AccessToken, error) {
-	user, err := s.getUser(ctx, authUser)
+	user, err := s.userClient.GetUser(ctx, authUser)
 	if err != nil {
 		return domain.RefreshToken{},
 			domain.AccessToken{},
@@ -211,7 +214,7 @@ func (s *Service) RefreshSession(
 
 	session.RefreshJTI = uuid.NewString()
 
-	user, err := s.getUser(ctx, domain.AuthUser{
+	user, err := s.userClient.GetUser(ctx, domain.AuthUser{
 		ID: session.UserID,
 	})
 	if err != nil {
@@ -349,28 +352,6 @@ func (s *Service) GetUserSessions(
 	})
 
 	return result, nil
-}
-
-func (s *Service) getUser(ctx context.Context, authUser domain.AuthUser) (domain.User, error) {
-	u, err := s.userClient.GetUser(ctx, &api.UserQuery{
-		ID:       authUser.ID,
-		Username: authUser.Username,
-		Email:    authUser.Email,
-	})
-	if err != nil {
-		return domain.User{}, err
-	}
-
-	return domain.User{
-		ID:           u.ID,
-		Username:     u.Username,
-		Email:        u.Email,
-		PasswordHash: u.PasswordHash,
-		Fullname:     u.Fullname,
-		IsActive:     u.IsActive,
-		IsSuperuser:  u.IsSuperuser,
-		IsBanned:     u.IsBanned,
-	}, nil
 }
 
 func (s *Service) validateUserStatus(ctx context.Context, user domain.User) error {
