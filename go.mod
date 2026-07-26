@@ -4,7 +4,7 @@ go 1.25.1
 
 require (
 	github.com/GroVlAn/auth-api v0.0.0-20260724101055-c66c92dfb635
-	github.com/GroVlAn/auth-base v0.0.0-20260614174515-d76ca1fed316
+	github.com/GroVlAn/auth-base v0.0.0-20260725103856-0f107994aba2
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/joho/godotenv v1.5.1

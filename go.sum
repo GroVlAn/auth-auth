@@ -2,8 +2,8 @@ github.com/BurntSushi/toml v1.2.1 h1:9F2/+DoOYIOksmaJFPw1tGFy1eDnIJXg+UHjuD8lTak
 github.com/BurntSushi/toml v1.2.1/go.mod h1:CxXYINrC8qIiEnFrOxCa7Jy5BFHlXnUU2pbicEuybxQ=
 github.com/GroVlAn/auth-api v0.0.0-20260724101055-c66c92dfb635 h1:zEJ6oXIFPQWompTQMROOw8mHCcRxmNHcVivTVQC0680=
 github.com/GroVlAn/auth-api v0.0.0-20260724101055-c66c92dfb635/go.mod h1:yo5d2rHjM3vAKMXPokMVxsDinlf55YsA3mNlGgg7/SE=
-github.com/GroVlAn/auth-base v0.0.0-20260614174515-d76ca1fed316 h1:YPD0vxcJ55C+a1wfwyOaXINe2h//65Id3K9SNCY56zo=
-github.com/GroVlAn/auth-base v0.0.0-20260614174515-d76ca1fed316/go.mod h1:R0efpy/UWuKbjYfq2xiZSxxRAEnCeEHek97Fv2YOji0=
+github.com/GroVlAn/auth-base v0.0.0-20260725103856-0f107994aba2 h1:XLkTeB9z+t7UcF3UsEPeq82YVhc4sCyhNakv8ZmRxOU=
+github.com/GroVlAn/auth-base v0.0.0-20260725103856-0f107994aba2/go.mod h1:wGzQIIqfu4HGhqIW8RJ0xkLCt4HzvQrlsi2pgHylRp0=
 github.com/bsm/ginkgo/v2 v2.12.0 h1:Ny8MWAHyOepLGlLKYmXG4IEkioBysk6GpaRTLC8zwWs=
 github.com/bsm/ginkgo/v2 v2.12.0/go.mod h1:SwYbGRRDovPVboqFv0tPTcG1sN61LM1Z4ARdbAV9g4c=
 github.com/bsm/gomega v1.27.10 h1:yeMWxP2pV2fG3FgAODIY8EiRE3dy0aeFYt4l7wh6yKA=
