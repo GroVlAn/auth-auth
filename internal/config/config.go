@@ -23,10 +23,7 @@ type HTTP struct {
 }
 
 type Settings struct {
-	TokenRefreshEndTTL time.Duration `env:"TOKEN_REFRESH_END_TTL" env-required:"true"`
-	TokenAccessEndTTL  time.Duration `env:"TOKEN_ACCESS_END_TTL" env-required:"true"`
-	SecretKey          string        `env:"SECRET_KEY"`
-	DefaultTimeout     time.Duration `yaml:"default_timeout"`
+	DefaultTimeout time.Duration `yaml:"default_timeout"`
 }
 
 type KeyBuilder struct {
@@ -35,28 +32,28 @@ type KeyBuilder struct {
 }
 
 type Redis struct {
-	Host           string        `env:"REDIS_HOST"`
-	Addr           string        `env:"REDIS_ADDR"`
-	Password       string        `env:"REDIS_PASSWORD"`
-	DB             int           `env:"REDIS_DB"`
 	DefaultTimeout time.Duration `yaml:"default_timeout"`
 }
 
-type Hasher struct {
-	Time    uint32 `env:"HASH_TIME" env-required:"true"`
-	Memory  uint32 `env:"HASH_MEMORY" env-required:"true"`
-	Threads uint8  `env:"HASH_THREADS" env-required:"true"`
-	KeyLen  uint32 `env:"HASH_KEY_LEN" env-required:"true"`
-	SaltLen uint32 `env:"HASH_SALT_LEN" env-required:"true"`
+type Vault struct {
+	SecretToken string `env:"VAULT_SECRET_TOKEN" env-required:"true"`
+	Address     string `env:"VAULT_ADDRESS" env-required:"true"`
+	Mount       string `env:"VAULT_MOUNT" env-required:"true"`
 }
 
+type VaultPaths struct {
+	Token  string `env:"TOKEN_PATH" env-required:"true"`
+	Redis  string `env:"REDIS_PATH" env-required:"true"`
+	Hasher string `env:"HASHER_PATH" env-required:"true"`
+}
 type Config struct {
 	HTTP       HTTP       `yaml:"http"`
 	GRPC       GRPC       `yaml:"grpc"`
 	Redis      Redis      `yaml:"db"`
 	Settings   Settings   `yaml:"settings"`
 	KeyBuilder KeyBuilder `yaml:"key_builder"`
-	Hasher     Hasher     `yaml:"hasher"`
+	Vault      Vault
+	VaultPaths VaultPaths
 }
 
 func New(path string) (*Config, error) {

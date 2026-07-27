@@ -14,7 +14,9 @@ import (
 	httpHandler "github.com/GroVlAn/auth-auth/internal/handler/http-handler"
 	grpcClient "github.com/GroVlAn/auth-auth/internal/infrastructure/grpc-client"
 	"github.com/GroVlAn/auth-auth/internal/infrastructure/kbuilder"
+	"github.com/GroVlAn/auth-auth/internal/infrastructure/secrets"
 	"github.com/GroVlAn/auth-auth/internal/infrastructure/tokens"
+	vaultClient "github.com/GroVlAn/auth-auth/internal/infrastructure/vault-client"
 	"github.com/GroVlAn/auth-auth/internal/repository"
 	grpcServer "github.com/GroVlAn/auth-auth/internal/server/grpc-server"
 	httpServer "github.com/GroVlAn/auth-auth/internal/server/http-server"
@@ -54,10 +56,30 @@ func main() {
 		l.Fatal().Err(err).Msg("failed to load configuration")
 	}
 
+	vc, err := vaultClient.New(vaultClient.Conf{
+		SecretToken: cfg.Vault.SecretToken,
+		Address:     cfg.Vault.Address,
+		Mount:       cfg.Vault.Mount,
+	})
+	if err != nil {
+		l.Fatal().Err(err).Msg("failed to load vault client")
+	}
+
+	provider := secrets.New(vc, secrets.Paths{
+		Token:  cfg.VaultPaths.Token,
+		Redis:  cfg.VaultPaths.Redis,
+		Hasher: cfg.VaultPaths.Hasher,
+	})
+
+	scrt, err := provider.Load(ctx)
+	if err != nil {
+		l.Fatal().Err(err).Msg("failed load secrets")
+	}
+
 	rc := redis.NewClient(&redis.Options{
-		Addr:     cfg.Redis.Host + ":" + cfg.Redis.Addr,
-		Password: cfg.Redis.Password,
-		DB:       cfg.Redis.DB,
+		Addr:     scrt.Redis.Host + ":" + scrt.Redis.Addr,
+		Password: scrt.Redis.Password,
+		DB:       scrt.Redis.DB,
 	})
 
 	kBuilder := kbuilder.New(cfg.KeyBuilder.Prev, cfg.KeyBuilder.Version)
@@ -66,7 +88,7 @@ func main() {
 
 	sessionRepo := repository.NewSessionRepository(rc, kBuilder, cfg.Redis.DefaultTimeout)
 
-	tokenizer := tokens.New(cfg.Settings.SecretKey)
+	tokenizer := tokens.New(scrt.Token.SecretKey)
 
 	conn, err := grpc.NewClient(
 		cfg.GRPC.UserApiHost+":"+cfg.GRPC.UserApiPort,
@@ -86,11 +108,11 @@ func main() {
 	grpcClient := grpcClient.New(conn)
 
 	hasher := crypto.New(crypto.Deps{
-		Time:    cfg.Hasher.Time,
-		Memory:  cfg.Hasher.Memory,
-		Threads: cfg.Hasher.Threads,
-		KeyLen:  cfg.Hasher.KeyLen,
-		SaltLen: cfg.Hasher.SaltLen,
+		Time:    scrt.Hasher.Time,
+		Memory:  scrt.Hasher.Memory,
+		Threads: scrt.Hasher.Threads,
+		KeyLen:  scrt.Hasher.KeyLen,
+		SaltLen: scrt.Hasher.SaltLen,
 	})
 
 	s := service.New(
@@ -102,8 +124,8 @@ func main() {
 		grpcClient,
 		hasher,
 		service.Deps{
-			TokenRefreshEndTTL: cfg.Settings.TokenRefreshEndTTL,
-			TokenAccessEndTTL:  cfg.Settings.TokenAccessEndTTL,
+			TokenRefreshEndTTL: time.Duration(scrt.Token.TokenRefreshEndTTL) * time.Second,
+			TokenAccessEndTTL:  time.Duration(scrt.Token.TokenAccessEndTTL) * time.Second,
 		},
 	)
 

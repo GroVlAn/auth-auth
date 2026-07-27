@@ -278,27 +278,23 @@ func (r *SessionRepository) UserSessions(ctx context.Context, userID string) ([]
 func (r *SessionRepository) DelSession(ctx context.Context, session domain.Session) error {
 	pipe := r.client.TxPipeline()
 
-	err := pipe.Del(
+	pipe.Del(
 		ctx,
 		r.keys.SessionKey(session.ID),
 	).Err()
-	fmt.Println("ERR1:", err)
 
-	err = pipe.Del(
+	pipe.Del(
 		ctx,
 		r.keys.RefreshKey(session.RefreshJTI),
 	).Err()
-	fmt.Println("ERR2:", err)
 
-	err = pipe.SRem(
+	pipe.SRem(
 		ctx,
 		r.keys.UserSessionsKey(session.UserID),
 		session.ID,
 	).Err()
-	fmt.Println("ERR3:", err)
 
 	if _, err := pipe.Exec(ctx); err != nil {
-		fmt.Println("ERR4:", err)
 		return ew.New(
 			ew.ErrorTypeInternal,
 			fmt.Errorf("executing pipeline to delete session: %w", err),
