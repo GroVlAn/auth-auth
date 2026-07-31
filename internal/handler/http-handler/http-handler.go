@@ -62,8 +62,8 @@ func New(
 	return &HTTPHandler{
 		l:     l,
 		s:     s,
-		mConf: mConf,
 		Deps:  deps,
+		mConf: mConf,
 	}
 }
 
