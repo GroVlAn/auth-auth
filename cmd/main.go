@@ -15,13 +15,13 @@ import (
 	grpcClient "github.com/GroVlAn/auth-auth/internal/infrastructure/grpc-client"
 	"github.com/GroVlAn/auth-auth/internal/infrastructure/kbuilder"
 	"github.com/GroVlAn/auth-auth/internal/infrastructure/secrets"
-	"github.com/GroVlAn/auth-auth/internal/infrastructure/tokens"
 	vaultClient "github.com/GroVlAn/auth-auth/internal/infrastructure/vault-client"
 	"github.com/GroVlAn/auth-auth/internal/repository"
 	grpcServer "github.com/GroVlAn/auth-auth/internal/server/grpc-server"
 	httpServer "github.com/GroVlAn/auth-auth/internal/server/http-server"
 	"github.com/GroVlAn/auth-auth/internal/service"
 	"github.com/GroVlAn/auth-base/crypto"
+	"github.com/GroVlAn/auth-base/tokens"
 	_ "github.com/lib/pq"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
@@ -135,6 +135,14 @@ func main() {
 		httpHandler.Deps{
 			BasePath:       cfg.HTTP.BaseHTTPPath,
 			DefaultTimeout: cfg.Settings.DefaultTimeout,
+		},
+		httpHandler.MiddlewareConf{
+			AllowedOrigins:   cfg.Middleware.AllowedOrigins,
+			AllowedMethods:   cfg.Middleware.AllowedMethods,
+			AllowedHeaders:   cfg.Middleware.AllowedHeaders,
+			ExposedHeaders:   cfg.Middleware.ExposedHeaders,
+			AllowCredentials: cfg.Middleware.AllowCredentials,
+			MaxAge:           cfg.Middleware.MaxAge,
 		},
 	)
 

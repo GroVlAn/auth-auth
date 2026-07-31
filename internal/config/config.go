@@ -22,6 +22,15 @@ type HTTP struct {
 	BaseHTTPPath      string        `yaml:"base_http_path" env-default:"/api"`
 }
 
+type Middleware struct {
+	AllowedOrigins   []string `yaml:"allowed_origins"`
+	AllowedMethods   []string `yaml:"allowed_methods"`
+	AllowedHeaders   []string `yaml:"allowed_headers"`
+	ExposedHeaders   []string `yaml:"exposed_headers"`
+	AllowCredentials bool     `yaml:"allow_credentials"`
+	MaxAge           int      `yaml:"max_age"`
+}
+
 type Settings struct {
 	DefaultTimeout time.Duration `yaml:"default_timeout"`
 }
@@ -48,6 +57,7 @@ type VaultPaths struct {
 }
 type Config struct {
 	HTTP       HTTP       `yaml:"http"`
+	Middleware Middleware `yaml:"middleware"`
 	GRPC       GRPC       `yaml:"grpc"`
 	Redis      Redis      `yaml:"db"`
 	Settings   Settings   `yaml:"settings"`

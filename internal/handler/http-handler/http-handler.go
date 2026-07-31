@@ -32,14 +32,24 @@ type service interface {
 	) ([]domain.UserSession, error)
 }
 
+type MiddlewareConf struct {
+	AllowedOrigins   []string
+	AllowedMethods   []string
+	AllowedHeaders   []string
+	ExposedHeaders   []string
+	AllowCredentials bool
+	MaxAge           int
+}
+
 type Deps struct {
 	BasePath       string
 	DefaultTimeout time.Duration
 }
 
 type HTTPHandler struct {
-	l zerolog.Logger
-	s service
+	l     zerolog.Logger
+	s     service
+	mConf MiddlewareConf
 	Deps
 }
 
@@ -47,11 +57,13 @@ func New(
 	l zerolog.Logger,
 	s service,
 	deps Deps,
+	mConf MiddlewareConf,
 ) *HTTPHandler {
 	return &HTTPHandler{
-		l:    l,
-		s:    s,
-		Deps: deps,
+		l:     l,
+		s:     s,
+		mConf: mConf,
+		Deps:  deps,
 	}
 }
 

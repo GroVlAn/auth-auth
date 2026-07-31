@@ -10,6 +10,7 @@ import (
 	"github.com/GroVlAn/auth-auth/internal/domain"
 	"github.com/GroVlAn/auth-auth/internal/domain/e"
 	"github.com/GroVlAn/auth-base/ew"
+	"github.com/GroVlAn/auth-base/tokens"
 	"github.com/google/uuid"
 )
 
@@ -38,10 +39,10 @@ type blacklistRepo interface {
 }
 
 type tokenizer interface {
-	CreateRefreshToken(rc domain.RefreshClaims) (string, error)
-	CreateAccessToken(ac domain.AccessClaims) (string, error)
-	ParseRefreshToken(token string) (domain.RefreshClaims, error)
-	ParseAccessToken(token string) (domain.AccessClaims, error)
+	CreateRefreshToken(rc tokens.RefreshClaims) (string, error)
+	CreateAccessToken(ac tokens.AccessClaims) (string, error)
+	ParseRefreshToken(token string) (tokens.RefreshClaims, error)
+	ParseAccessToken(token string) (tokens.AccessClaims, error)
 }
 
 type hasher interface {
@@ -411,7 +412,7 @@ func (s *Service) createRefreshToken(user domain.User, session domain.Session) (
 	refreshToken.StartTTL = time.Now()
 	refreshToken.EndTTL = refreshToken.StartTTL.Add(s.TokenRefreshEndTTL)
 
-	token, err := s.tokenizer.CreateRefreshToken(domain.RefreshClaims{
+	token, err := s.tokenizer.CreateRefreshToken(tokens.RefreshClaims{
 		SUB: user.ID,
 		SID: session.ID,
 		JTI: session.RefreshJTI,
@@ -434,7 +435,7 @@ func (s *Service) createAccessToken(rfID string, user domain.User) (domain.Acces
 	accessToken.StartTTL = time.Now()
 	accessToken.EndTTL = accessToken.StartTTL.Add(s.TokenAccessEndTTL)
 
-	token, err := s.tokenizer.CreateAccessToken(domain.AccessClaims{
+	token, err := s.tokenizer.CreateAccessToken(tokens.AccessClaims{
 		RefreshTokenID: rfID,
 		SUB:            user.ID,
 		IAT:            accessToken.StartTTL.Unix(),

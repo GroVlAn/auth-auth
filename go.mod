@@ -4,11 +4,13 @@ go 1.25.1
 
 require (
 	github.com/GroVlAn/auth-api v0.0.0-20260724101055-c66c92dfb635
-	github.com/GroVlAn/auth-base v0.0.0-20260725103856-0f107994aba2
+	github.com/GroVlAn/auth-base v0.0.0-20260728112346-3648c09ddc4a
 	github.com/golang-jwt/jwt v3.2.2+incompatible
+	github.com/hashicorp/vault/api v1.23.0
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.12.3
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/rs/zerolog v1.35.1
 )
 
@@ -24,11 +26,8 @@ require (
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2 // indirect
 	github.com/hashicorp/go-sockaddr v1.0.7 // indirect
 	github.com/hashicorp/hcl v1.0.1-vault-7 // indirect
-	github.com/hashicorp/vault/api v1.23.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
-	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
-	github.com/stretchr/testify v1.10.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
 )
 

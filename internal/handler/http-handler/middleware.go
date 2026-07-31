@@ -7,11 +7,11 @@ import (
 
 func (h *HTTPHandler) cors(r *chi.Mux) {
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"https://*", "http://*"},
-		AllowedMethods:   []string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-		ExposedHeaders:   []string{"Link"},
-		AllowCredentials: true,
-		MaxAge:           300,
+		AllowedOrigins:   h.mConf.AllowedOrigins,
+		AllowedMethods:   h.mConf.AllowedMethods,
+		AllowedHeaders:   h.mConf.AllowedHeaders,
+		ExposedHeaders:   h.mConf.ExposedHeaders,
+		AllowCredentials: h.mConf.AllowCredentials,
+		MaxAge:           h.mConf.MaxAge,
 	}))
 }

@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	authenticateEndpoint   = "/auth"
+	authenticateEndpoint   = "/"
 	refreshSessionEndpoint = "/refresh"
 	logoutEndpoint         = "/logout"
 	logoutAllEndpoint      = "/logout/all"
