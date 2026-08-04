@@ -20,21 +20,3 @@ settings:
 redis:
   default_timeout: 15s
 
-middleware:
-  allowed_origins:
-    - 'https://*'
-    - 'http://*'
-  allowed_methods:
-    - 'GET'
-    - 'POST'
-    - 'PATCH'
-    - 'PUT'
-    - 'DELETE'
-    - 'OPTIONS'
-  allowed_headers:
-    - 'Accept'
-    - 'Authorization'
-    - 'Content-Type'
-    - 'X-CSRF-Token'
-  allow_credentials: true
-  max_age: 300

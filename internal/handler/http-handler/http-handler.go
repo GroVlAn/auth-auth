@@ -32,24 +32,14 @@ type service interface {
 	) ([]domain.UserSession, error)
 }
 
-type MiddlewareConf struct {
-	AllowedOrigins   []string
-	AllowedMethods   []string
-	AllowedHeaders   []string
-	ExposedHeaders   []string
-	AllowCredentials bool
-	MaxAge           int
-}
-
 type Deps struct {
 	BasePath       string
 	DefaultTimeout time.Duration
 }
 
 type HTTPHandler struct {
-	l     zerolog.Logger
-	s     service
-	mConf MiddlewareConf
+	l zerolog.Logger
+	s service
 	Deps
 }
 
@@ -57,20 +47,16 @@ func New(
 	l zerolog.Logger,
 	s service,
 	deps Deps,
-	mConf MiddlewareConf,
 ) *HTTPHandler {
 	return &HTTPHandler{
-		l:     l,
-		s:     s,
-		Deps:  deps,
-		mConf: mConf,
+		l:    l,
+		s:    s,
+		Deps: deps,
 	}
 }
 
 func (h *HTTPHandler) Handler() *chi.Mux {
 	r := chi.NewRouter()
-
-	h.cors(r)
 
 	r.Route("/", func(r chi.Router) {
 		r.Get("/home", func(w http.ResponseWriter, r *http.Request) {

@@ -10,11 +10,11 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func (h *GRPCHandler) Auth(ctx context.Context, reqAuthUser *api.AuthUser) (*api.Tokens, error) {
+func (h *GRPCHandler) Auth(ctx context.Context, req *api.AuthUser) (*api.Tokens, error) {
 	authUser := domain.AuthUser{
-		Username: reqAuthUser.Username,
-		Email:    reqAuthUser.Email,
-		Password: reqAuthUser.Password,
+		Username: req.Username,
+		Email:    req.Email,
+		Password: req.Password,
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, h.defaultTimeout)
@@ -46,11 +46,11 @@ func (h *GRPCHandler) Auth(ctx context.Context, reqAuthUser *api.AuthUser) (*api
 	}, nil
 }
 
-func (h *GRPCHandler) Refresh(ctx context.Context, reqRefToken *api.RefreshToken) (*api.Tokens, error) {
+func (h *GRPCHandler) Refresh(ctx context.Context, req *api.RefreshToken) (*api.Tokens, error) {
 	ctx, cancel := context.WithTimeout(ctx, h.defaultTimeout)
 	defer cancel()
 
-	rfToken, accToken, err := h.s.RefreshSession(ctx, reqRefToken.Token)
+	rfToken, accToken, err := h.s.RefreshSession(ctx, req.Token)
 	if err != nil {
 		return nil, grpcx.HandleError(h.l, err)
 	}
@@ -71,11 +71,11 @@ func (h *GRPCHandler) Refresh(ctx context.Context, reqRefToken *api.RefreshToken
 	}, nil
 }
 
-func (h *GRPCHandler) Logout(ctx context.Context, reqRefToken *api.RefreshToken) (*api.Success, error) {
+func (h *GRPCHandler) Logout(ctx context.Context, req *api.RefreshToken) (*api.Success, error) {
 	ctx, cancel := context.WithTimeout(ctx, h.defaultTimeout)
 	defer cancel()
 
-	if err := h.s.Logout(ctx, reqRefToken.Token); err != nil {
+	if err := h.s.Logout(ctx, req.Token); err != nil {
 		return nil, grpcx.HandleError(h.l, err)
 	}
 
@@ -84,11 +84,11 @@ func (h *GRPCHandler) Logout(ctx context.Context, reqRefToken *api.RefreshToken)
 	}, nil
 }
 
-func (h *GRPCHandler) LogoutAll(ctx context.Context, reqRefToken *api.RefreshToken) (*api.Success, error) {
+func (h *GRPCHandler) LogoutAll(ctx context.Context, req *api.RefreshToken) (*api.Success, error) {
 	ctx, cancel := context.WithTimeout(ctx, h.defaultTimeout)
 	defer cancel()
 
-	if err := h.s.LogoutAllSession(ctx, reqRefToken.Token); err != nil {
+	if err := h.s.LogoutAllSession(ctx, req.Token); err != nil {
 		return nil, grpcx.HandleError(h.l, err)
 	}
 
@@ -97,11 +97,11 @@ func (h *GRPCHandler) LogoutAll(ctx context.Context, reqRefToken *api.RefreshTok
 	}, nil
 }
 
-func (h *GRPCHandler) GetUserSessions(ctx context.Context, reqRefToken *api.RefreshToken) (*api.UserSessions, error) {
+func (h *GRPCHandler) GetUserSessions(ctx context.Context, req *api.RefreshToken) (*api.UserSessions, error) {
 	ctx, cancel := context.WithTimeout(ctx, h.defaultTimeout)
 	defer cancel()
 
-	userSessions, err := h.s.GetUserSessions(ctx, reqRefToken.Token)
+	userSessions, err := h.s.GetUserSessions(ctx, req.Token)
 	if err != nil {
 		return nil, grpcx.HandleError(h.l, err)
 	}
