@@ -45,9 +45,6 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	if err := config.LoadEnv(); err != nil {
-		l.Fatal().Err(err).Msg("failed to load env variables")
-	}
 	configPath := flag.String("config", localConfigPath, "Path to the configuration file")
 	flag.Parse()
 

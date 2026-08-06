@@ -12,7 +12,6 @@ RUN go build -o auth ./cmd/main.go
 
 FROM scratch
 COPY --from=builder /app/auth /auth
-COPY .env .
 COPY ./configs ./configs
 EXPOSE 9081 9011
 

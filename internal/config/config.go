@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
-	"github.com/joho/godotenv"
 )
 
 type GRPC struct {
@@ -73,18 +72,9 @@ func New(path string) (*Config, error) {
 		return nil, fmt.Errorf("reading config file %s: %w", path, err)
 	}
 
+	if err := cleanenv.ReadEnv(cfg); err != nil {
+		return nil, err
+	}
+
 	return cfg, nil
-}
-
-func LoadEnv(filenames ...string) error {
-	if len(filenames) == 0 {
-		return godotenv.Load()
-	}
-
-	for _, filename := range filenames {
-		if err := godotenv.Load(filename); err != nil {
-			return fmt.Errorf("loading env file %s: %w", filename, err)
-		}
-	}
-	return nil
 }
