@@ -87,7 +87,7 @@ func New(
 	}
 }
 
-func (s *Service) Authenticate(
+func (s *Service) Login(
 	ctx context.Context,
 	authUser domain.AuthUser,
 	payload domain.UserPayload,

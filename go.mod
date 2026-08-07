@@ -3,16 +3,17 @@ module github.com/GroVlAn/auth-auth
 go 1.25.1
 
 require (
-	github.com/GroVlAn/auth-api v0.0.0-20260724101055-c66c92dfb635
 	github.com/GroVlAn/auth-base v0.0.0-20260728112346-3648c09ddc4a
-	github.com/golang-jwt/jwt v3.2.2+incompatible
+	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/hashicorp/vault/api v1.23.0
 	github.com/ilyakaznacheev/cleanenv v1.5.0
-	github.com/joho/godotenv v1.5.1
+	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/lib/pq v1.12.3
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/rs/zerolog v1.35.1
 )
+
+require github.com/GroVlAn/auth-api v0.0.0-20260807120227-7515262ae2e1
 
 require (
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
@@ -44,7 +45,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/go-chi/chi/v5 v5.3.0
-	github.com/go-chi/cors v1.2.2
 	github.com/google/uuid v1.6.0
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect

@@ -10,7 +10,7 @@ import (
 )
 
 type service interface {
-	Authenticate(
+	Login(
 		ctx context.Context,
 		authUser domain.AuthUser,
 		payload domain.UserPayload,

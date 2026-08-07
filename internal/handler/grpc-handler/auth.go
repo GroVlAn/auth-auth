@@ -10,7 +10,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func (h *GRPCHandler) Auth(ctx context.Context, req *api.AuthUser) (*api.Tokens, error) {
+func (h *GRPCHandler) Login(ctx context.Context, req *api.AuthUser) (*api.Tokens, error) {
 	authUser := domain.AuthUser{
 		Username: req.Username,
 		Email:    req.Email,
@@ -25,7 +25,7 @@ func (h *GRPCHandler) Auth(ctx context.Context, req *api.AuthUser) (*api.Tokens,
 		IP:        requestinfo.GetIP(ctx),
 	}
 
-	rfToken, accToken, err := h.s.Authenticate(ctx, authUser, userPayload)
+	rfToken, accToken, err := h.s.Login(ctx, authUser, userPayload)
 	if err != nil {
 		return nil, grpcx.HandleError(h.l, err)
 	}

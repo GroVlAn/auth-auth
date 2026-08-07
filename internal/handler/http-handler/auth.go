@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	authenticateEndpoint   = "/"
+	authenticateEndpoint   = "/login"
 	refreshSessionEndpoint = "/refresh"
 	logoutEndpoint         = "/logout"
 	logoutAllEndpoint      = "/logout/all"
@@ -47,7 +47,7 @@ func (h *HTTPHandler) auth(w http.ResponseWriter, r *http.Request) {
 			IP:        h.userIP(r),
 		}
 
-		rfToken, accToken, err := h.s.Authenticate(ctx, authUser, userPayload)
+		rfToken, accToken, err := h.s.Login(ctx, authUser, userPayload)
 		if err != nil {
 			h.handleError(w, err)
 			return
