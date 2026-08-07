@@ -50,7 +50,7 @@ type hasher interface {
 }
 
 type userGRPCClient interface {
-	GetUser(ctx context.Context, authUser domain.AuthUser) (domain.User, error)
+	GetUser(ctx context.Context, authUser domain.LoginUser) (domain.User, error)
 }
 
 type Repos struct {
@@ -89,7 +89,7 @@ func New(
 
 func (s *Service) Login(
 	ctx context.Context,
-	authUser domain.AuthUser,
+	authUser domain.LoginUser,
 	payload domain.UserPayload,
 ) (domain.RefreshToken, domain.AccessToken, error) {
 	user, err := s.userClient.GetUser(ctx, authUser)
@@ -215,7 +215,7 @@ func (s *Service) RefreshSession(
 
 	session.RefreshJTI = uuid.NewString()
 
-	user, err := s.userClient.GetUser(ctx, domain.AuthUser{
+	user, err := s.userClient.GetUser(ctx, domain.LoginUser{
 		ID: session.UserID,
 	})
 	if err != nil {

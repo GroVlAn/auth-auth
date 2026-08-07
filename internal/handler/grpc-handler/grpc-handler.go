@@ -12,7 +12,7 @@ import (
 type service interface {
 	Login(
 		ctx context.Context,
-		authUser domain.AuthUser,
+		authUser domain.LoginUser,
 		payload domain.UserPayload,
 	) (domain.RefreshToken, domain.AccessToken, error)
 	RefreshSession(

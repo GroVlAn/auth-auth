@@ -2,7 +2,7 @@ package domain
 
 import "time"
 
-type AuthUser struct {
+type LoginUser struct {
 	ID       string `json:"-"`
 	Username string `json:"username"`
 	Email    string `json:"email"`

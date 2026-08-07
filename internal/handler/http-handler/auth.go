@@ -32,7 +32,7 @@ func (h *HTTPHandler) authRouter(r chi.Router) {
 
 func (h *HTTPHandler) auth(w http.ResponseWriter, r *http.Request) {
 	h.withBodyClose(r.Body, func(body io.ReadCloser) {
-		var authUser domain.AuthUser
+		var authUser domain.LoginUser
 
 		if err := json.NewDecoder(body).Decode(&authUser); err != nil {
 			h.handleDecodeBody(w, err)

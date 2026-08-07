@@ -18,7 +18,7 @@ func New(conn *grpc.ClientConn) *UserGRPCClient {
 	}
 }
 
-func (uc *UserGRPCClient) GetUser(ctx context.Context, authUser domain.AuthUser) (domain.User, error) {
+func (uc *UserGRPCClient) GetUser(ctx context.Context, authUser domain.LoginUser) (domain.User, error) {
 	u, err := uc.client.GetUser(ctx, &api.UserQuery{
 		ID:       authUser.ID,
 		Username: authUser.Username,

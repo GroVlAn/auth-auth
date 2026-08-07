@@ -11,7 +11,7 @@ import (
 )
 
 func (h *GRPCHandler) Login(ctx context.Context, req *api.AuthUser) (*api.Tokens, error) {
-	authUser := domain.AuthUser{
+	authUser := domain.LoginUser{
 		Username: req.Username,
 		Email:    req.Email,
 		Password: req.Password,
