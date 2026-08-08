@@ -47,7 +47,7 @@ Refresh tokens are stored in Redis and are subject to rotation.
 
 The general flow is:
 
-![Architecture](architecture/generate-tokens-flow.png)
+![Generate tokens flow](architecture/generate-tokens-flow.png)
 
 This prevents reuse of an already rotated refresh token.
 
